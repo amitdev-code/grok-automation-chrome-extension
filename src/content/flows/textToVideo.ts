@@ -1,4 +1,4 @@
-import { findByXPath, clickElement, setInputValue, getMediaUrlFromPage, waitForGeneratingThen100Percent } from '../xpath';
+import { findByXPath, clickElement, setInputValue, getMediaUrlFromPage, waitForGeneratingThen100Percent, waitForImaginePageReady } from '../xpath';
 import { findPromptInput, findGenerateButton } from '../xpath';
 import { SELECTORS, FALLBACKS } from '../selectors';
 import { MESSAGE_TYPES } from '../messages';
@@ -81,42 +81,66 @@ export async function runTextToVideo(
       videoLength: string;
     };
   },
-  options: { promptDelayMs: number; renderTimeoutMs: number; maxRetries: number }
+  options: { promptDelayMs: number; renderTimeoutMs: number; maxRetries: number },
+  startFromPromptIndex = 0
 ): Promise<void> {
   const { prompts, settings, name } = project;
   const { promptDelayMs, renderTimeoutMs, maxRetries } = options;
 
-  reportProgress('Selecting Video mode...');
-  if (!clickVideoMode()) {
-    const listItem = findByXPath(SELECTORS.LIST_ITEM_NEXT_PROMPT);
-    if (listItem) {
-      clickElement(listItem);
-      await delay(1000);
-    }
-    if (!clickVideoMode()) {
-      reportError('Could not select Video mode');
+  const imagineBase = 'https://grok.com/imagine';
+  const isOnImaginePage = (): boolean => {
+    const href = window.location.href;
+    return href === imagineBase || href.startsWith(imagineBase + '?');
+  };
+  for (let i = startFromPromptIndex; i < prompts.length; i++) {
+    reportProgress(`[${i + 1}/${prompts.length}] Checking URL...`);
+    if (!isOnImaginePage()) {
+      reportProgress(`[${i + 1}/${prompts.length}] URL is not base Imagine. Requesting navigation to ${imagineBase}...`);
+      chrome.runtime.sendMessage({
+        type: MESSAGE_TYPES.REQUEST_NAVIGATE_TO_IMAGINE,
+        payload: { project, promptIndex: i, options: { promptDelayMs, renderTimeoutMs, maxRetries } },
+      }).catch(() => {});
       return;
     }
-  }
-  await delay(500);
-  reportProgress(`Setting aspect ratio to ${settings.aspectRatio}...`);
-  selectAspectRatio(settings.aspectRatio);
-  await delay(300);
-  reportProgress(`Setting video quality to ${settings.videoQuality}...`);
-  selectVideoQuality(settings.videoQuality);
-  await delay(200);
-  reportProgress(`Setting video length to ${settings.videoLength}s...`);
-  selectVideoLength(settings.videoLength);
-  await delay(300);
+    reportProgress(`[${i + 1}/${prompts.length}] Ensuring page ready...`);
+    try {
+      await waitForImaginePageReady(i === startFromPromptIndex ? 20000 : 10000);
+      await delay(1000);
+    } catch {
+      reportError(`Page not ready before prompt ${i + 1}`);
+      return;
+    }
 
-  reportProgress('Finding prompt input...');
-  const promptInput = findPromptInput(SELECTORS.PROMPT_INPUT);
-  if (!promptInput) {
-    reportError('Could not find prompt input');
-    return;
-  }
+    reportProgress(`[${i + 1}/${prompts.length}] Selecting Video mode...`);
+    if (!clickVideoMode()) {
+      const listItem = findByXPath(SELECTORS.LIST_ITEM_NEXT_PROMPT);
+      if (listItem) {
+        clickElement(listItem);
+        await delay(1000);
+      }
+      if (!clickVideoMode()) {
+        reportError(`Could not select Video mode (prompt ${i + 1})`);
+        return;
+      }
+    }
+    await delay(500);
+    reportProgress(`[${i + 1}/${prompts.length}] Setting aspect ratio to ${settings.aspectRatio}...`);
+    selectAspectRatio(settings.aspectRatio);
+    await delay(300);
+    reportProgress(`[${i + 1}/${prompts.length}] Setting video quality to ${settings.videoQuality}...`);
+    selectVideoQuality(settings.videoQuality);
+    await delay(200);
+    reportProgress(`[${i + 1}/${prompts.length}] Setting video length to ${settings.videoLength}s...`);
+    selectVideoLength(settings.videoLength);
+    await delay(300);
 
-  for (let i = 0; i < prompts.length; i++) {
+    reportProgress(`[${i + 1}/${prompts.length}] Finding prompt input...`);
+    const promptInput = findPromptInput(SELECTORS.PROMPT_INPUT);
+    if (!promptInput) {
+      reportError(`Could not find prompt input (prompt ${i + 1})`);
+      return;
+    }
+
     reportProgress(`[${i + 1}/${prompts.length}] Entering prompt...`);
     setInputValue(promptInput, prompts[i]);
     await delay(400);

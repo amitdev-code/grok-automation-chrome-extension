@@ -3,7 +3,8 @@ const MESSAGE_TYPES = {
   PROJECT_DONE: "PROJECT_DONE",
   PROJECT_PROGRESS: "PROJECT_PROGRESS",
   ERROR: "ERROR",
-  DOWNLOAD_REQUEST: "DOWNLOAD_REQUEST"
+  DOWNLOAD_REQUEST: "DOWNLOAD_REQUEST",
+  REQUEST_NAVIGATE_TO_IMAGINE: "REQUEST_NAVIGATE_TO_IMAGINE"
 };
 
 function findByXPath(xpath, root = document) {
@@ -281,25 +282,48 @@ function selectAspectRatio$2(ratio) {
   }
   return false;
 }
-async function runTextToImage(project, options) {
+async function runTextToImage(project, options, startFromPromptIndex = 0) {
   const { prompts, settings, name } = project;
   const { promptDelayMs, renderTimeoutMs, maxRetries } = options;
-  reportProgress$2("Selecting Image mode...");
-  if (!clickImageMode()) {
-    reportError$2("Could not select Image mode");
-    return;
-  }
-  await delay$2(500);
-  reportProgress$2(`Setting aspect ratio to ${settings.aspectRatio}...`);
-  selectAspectRatio$2(settings.aspectRatio);
-  await delay$2(300);
-  reportProgress$2("Finding prompt input...");
-  const promptInput = findPromptInput(SELECTORS.PROMPT_INPUT);
-  if (!promptInput) {
-    reportError$2("Could not find prompt input");
-    return;
-  }
-  for (let i = 0; i < prompts.length; i++) {
+  const imagineBase = "https://grok.com/imagine";
+  const isOnImaginePage = () => {
+    const href = window.location.href;
+    return href === imagineBase || href.startsWith(imagineBase + "?");
+  };
+  for (let i = startFromPromptIndex; i < prompts.length; i++) {
+    reportProgress$2(`[${i + 1}/${prompts.length}] Checking URL...`);
+    if (!isOnImaginePage()) {
+      reportProgress$2(`[${i + 1}/${prompts.length}] URL is not base Imagine. Requesting navigation to ${imagineBase}...`);
+      chrome.runtime.sendMessage({
+        type: MESSAGE_TYPES.REQUEST_NAVIGATE_TO_IMAGINE,
+        payload: { project, promptIndex: i, options: { promptDelayMs, renderTimeoutMs, maxRetries } }
+      }).catch(() => {
+      });
+      return;
+    }
+    reportProgress$2(`[${i + 1}/${prompts.length}] Ensuring page ready...`);
+    try {
+      await waitForImaginePageReady(i === startFromPromptIndex ? 2e4 : 1e4);
+      await delay$2(1e3);
+    } catch {
+      reportError$2(`Page not ready before prompt ${i + 1}`);
+      return;
+    }
+    reportProgress$2(`[${i + 1}/${prompts.length}] Selecting Image mode...`);
+    if (!clickImageMode()) {
+      reportError$2(`Could not select Image mode (prompt ${i + 1})`);
+      return;
+    }
+    await delay$2(500);
+    reportProgress$2(`[${i + 1}/${prompts.length}] Setting aspect ratio to ${settings.aspectRatio}...`);
+    selectAspectRatio$2(settings.aspectRatio);
+    await delay$2(300);
+    reportProgress$2(`[${i + 1}/${prompts.length}] Finding prompt input...`);
+    const promptInput = findPromptInput(SELECTORS.PROMPT_INPUT);
+    if (!promptInput) {
+      reportError$2(`Could not find prompt input (prompt ${i + 1})`);
+      return;
+    }
     reportProgress$2(`[${i + 1}/${prompts.length}] Entering prompt...`);
     setInputValue(promptInput, prompts[i]);
     await delay$2(400);
@@ -410,38 +434,61 @@ function selectVideoLength$1(length) {
   }
   return false;
 }
-async function runTextToVideo(project, options) {
+async function runTextToVideo(project, options, startFromPromptIndex = 0) {
   const { prompts, settings, name } = project;
   const { promptDelayMs, renderTimeoutMs, maxRetries } = options;
-  reportProgress$1("Selecting Video mode...");
-  if (!clickVideoMode$1()) {
-    const listItem = findByXPath(SELECTORS.LIST_ITEM_NEXT_PROMPT);
-    if (listItem) {
-      clickElement(listItem);
-      await delay$1(1e3);
-    }
-    if (!clickVideoMode$1()) {
-      reportError$1("Could not select Video mode");
+  const imagineBase = "https://grok.com/imagine";
+  const isOnImaginePage = () => {
+    const href = window.location.href;
+    return href === imagineBase || href.startsWith(imagineBase + "?");
+  };
+  for (let i = startFromPromptIndex; i < prompts.length; i++) {
+    reportProgress$1(`[${i + 1}/${prompts.length}] Checking URL...`);
+    if (!isOnImaginePage()) {
+      reportProgress$1(`[${i + 1}/${prompts.length}] URL is not base Imagine. Requesting navigation to ${imagineBase}...`);
+      chrome.runtime.sendMessage({
+        type: MESSAGE_TYPES.REQUEST_NAVIGATE_TO_IMAGINE,
+        payload: { project, promptIndex: i, options: { promptDelayMs, renderTimeoutMs, maxRetries } }
+      }).catch(() => {
+      });
       return;
     }
-  }
-  await delay$1(500);
-  reportProgress$1(`Setting aspect ratio to ${settings.aspectRatio}...`);
-  selectAspectRatio$1(settings.aspectRatio);
-  await delay$1(300);
-  reportProgress$1(`Setting video quality to ${settings.videoQuality}...`);
-  selectVideoQuality$1(settings.videoQuality);
-  await delay$1(200);
-  reportProgress$1(`Setting video length to ${settings.videoLength}s...`);
-  selectVideoLength$1(settings.videoLength);
-  await delay$1(300);
-  reportProgress$1("Finding prompt input...");
-  const promptInput = findPromptInput(SELECTORS.PROMPT_INPUT);
-  if (!promptInput) {
-    reportError$1("Could not find prompt input");
-    return;
-  }
-  for (let i = 0; i < prompts.length; i++) {
+    reportProgress$1(`[${i + 1}/${prompts.length}] Ensuring page ready...`);
+    try {
+      await waitForImaginePageReady(i === startFromPromptIndex ? 2e4 : 1e4);
+      await delay$1(1e3);
+    } catch {
+      reportError$1(`Page not ready before prompt ${i + 1}`);
+      return;
+    }
+    reportProgress$1(`[${i + 1}/${prompts.length}] Selecting Video mode...`);
+    if (!clickVideoMode$1()) {
+      const listItem = findByXPath(SELECTORS.LIST_ITEM_NEXT_PROMPT);
+      if (listItem) {
+        clickElement(listItem);
+        await delay$1(1e3);
+      }
+      if (!clickVideoMode$1()) {
+        reportError$1(`Could not select Video mode (prompt ${i + 1})`);
+        return;
+      }
+    }
+    await delay$1(500);
+    reportProgress$1(`[${i + 1}/${prompts.length}] Setting aspect ratio to ${settings.aspectRatio}...`);
+    selectAspectRatio$1(settings.aspectRatio);
+    await delay$1(300);
+    reportProgress$1(`[${i + 1}/${prompts.length}] Setting video quality to ${settings.videoQuality}...`);
+    selectVideoQuality$1(settings.videoQuality);
+    await delay$1(200);
+    reportProgress$1(`[${i + 1}/${prompts.length}] Setting video length to ${settings.videoLength}s...`);
+    selectVideoLength$1(settings.videoLength);
+    await delay$1(300);
+    reportProgress$1(`[${i + 1}/${prompts.length}] Finding prompt input...`);
+    const promptInput = findPromptInput(SELECTORS.PROMPT_INPUT);
+    if (!promptInput) {
+      reportError$1(`Could not find prompt input (prompt ${i + 1})`);
+      return;
+    }
     reportProgress$1(`[${i + 1}/${prompts.length}] Entering prompt...`);
     setInputValue(promptInput, prompts[i]);
     await delay$1(400);
@@ -559,38 +606,61 @@ function selectVideoLength(length) {
   }
   return false;
 }
-async function runFrameToVideo(project, options) {
+async function runFrameToVideo(project, options, startFromPromptIndex = 0) {
   const { prompts, settings, name } = project;
   const { promptDelayMs, renderTimeoutMs, maxRetries } = options;
-  reportProgress("Selecting Video mode (Frame-to-Video)...");
-  if (!clickVideoMode()) {
-    const listItem = findByXPath(SELECTORS.LIST_ITEM_NEXT_PROMPT);
-    if (listItem) {
-      clickElement(listItem);
-      await delay(1e3);
-    }
-    if (!clickVideoMode()) {
-      reportError("Could not select Video mode. Ensure you are on Frame-to-Video and have uploaded an image.");
+  const imagineBase = "https://grok.com/imagine";
+  const isOnImaginePage = () => {
+    const href = window.location.href;
+    return href === imagineBase || href.startsWith(imagineBase + "?");
+  };
+  for (let i = startFromPromptIndex; i < prompts.length; i++) {
+    reportProgress(`[${i + 1}/${prompts.length}] Checking URL...`);
+    if (!isOnImaginePage()) {
+      reportProgress(`[${i + 1}/${prompts.length}] URL is not base Imagine. Requesting navigation to ${imagineBase}...`);
+      chrome.runtime.sendMessage({
+        type: MESSAGE_TYPES.REQUEST_NAVIGATE_TO_IMAGINE,
+        payload: { project, promptIndex: i, options: { promptDelayMs, renderTimeoutMs, maxRetries } }
+      }).catch(() => {
+      });
       return;
     }
-  }
-  await delay(500);
-  reportProgress(`Setting aspect ratio to ${settings.aspectRatio}...`);
-  selectAspectRatio(settings.aspectRatio);
-  await delay(300);
-  reportProgress(`Setting video quality to ${settings.videoQuality}...`);
-  selectVideoQuality(settings.videoQuality);
-  await delay(200);
-  reportProgress(`Setting video length to ${settings.videoLength}s...`);
-  selectVideoLength(settings.videoLength);
-  await delay(300);
-  reportProgress("Finding prompt input...");
-  const promptInput = findPromptInput(SELECTORS.PROMPT_INPUT);
-  if (!promptInput) {
-    reportError("Could not find prompt input");
-    return;
-  }
-  for (let i = 0; i < prompts.length; i++) {
+    reportProgress(`[${i + 1}/${prompts.length}] Ensuring page ready...`);
+    try {
+      await waitForImaginePageReady(i === startFromPromptIndex ? 2e4 : 1e4);
+      await delay(1e3);
+    } catch {
+      reportError(`Page not ready before prompt ${i + 1}`);
+      return;
+    }
+    reportProgress(`[${i + 1}/${prompts.length}] Selecting Video mode (Frame-to-Video)...`);
+    if (!clickVideoMode()) {
+      const listItem = findByXPath(SELECTORS.LIST_ITEM_NEXT_PROMPT);
+      if (listItem) {
+        clickElement(listItem);
+        await delay(1e3);
+      }
+      if (!clickVideoMode()) {
+        reportError(`Could not select Video mode (prompt ${i + 1}). Ensure Frame-to-Video and image uploaded.`);
+        return;
+      }
+    }
+    await delay(500);
+    reportProgress(`[${i + 1}/${prompts.length}] Setting aspect ratio to ${settings.aspectRatio}...`);
+    selectAspectRatio(settings.aspectRatio);
+    await delay(300);
+    reportProgress(`[${i + 1}/${prompts.length}] Setting video quality to ${settings.videoQuality}...`);
+    selectVideoQuality(settings.videoQuality);
+    await delay(200);
+    reportProgress(`[${i + 1}/${prompts.length}] Setting video length to ${settings.videoLength}s...`);
+    selectVideoLength(settings.videoLength);
+    await delay(300);
+    reportProgress(`[${i + 1}/${prompts.length}] Finding prompt input...`);
+    const promptInput = findPromptInput(SELECTORS.PROMPT_INPUT);
+    if (!promptInput) {
+      reportError(`Could not find prompt input (prompt ${i + 1})`);
+      return;
+    }
     reportProgress(`[${i + 1}/${prompts.length}] Entering prompt...`);
     setInputValue(promptInput, prompts[i]);
     await delay(400);
@@ -656,7 +726,7 @@ chrome.runtime.onMessage.addListener(
     if (message.type !== MESSAGE_TYPES.RUN_PROJECT || !message.payload?.project) {
       return false;
     }
-    const { project, globalSettings } = message.payload;
+    const { project, globalSettings, startFromPromptIndex } = message.payload;
     const options = {
       promptDelayMs: globalSettings?.promptDelayMs ?? DEFAULT_OPTIONS.promptDelayMs,
       renderTimeoutMs: globalSettings?.renderTimeoutMs ?? DEFAULT_OPTIONS.renderTimeoutMs,
@@ -673,10 +743,10 @@ chrome.runtime.onMessage.addListener(
         reportProgress("Page ready. Waiting 1.5s for UI to settle...");
         await new Promise((r) => setTimeout(r, 1500));
         if (project.mode === "text-to-image") {
-          reportProgress("Starting Text-to-Image flow...");
-          await runTextToImage(project, options);
+          reportProgress(startFromPromptIndex != null ? `Resuming Text-to-Image from prompt ${startFromPromptIndex + 1}...` : "Starting Text-to-Image flow...");
+          await runTextToImage(project, options, startFromPromptIndex);
         } else if (project.mode === "text-to-video") {
-          reportProgress("Starting Text-to-Video flow...");
+          reportProgress(startFromPromptIndex != null ? `Resuming Text-to-Video from prompt ${startFromPromptIndex + 1}...` : "Starting Text-to-Video flow...");
           await runTextToVideo(
             {
               ...project,
@@ -690,10 +760,11 @@ chrome.runtime.onMessage.addListener(
               promptDelayMs: options.promptDelayMs,
               renderTimeoutMs: options.renderTimeoutMs,
               maxRetries: options.maxRetries
-            }
+            },
+            startFromPromptIndex
           );
         } else if (project.mode === "frame-to-video") {
-          reportProgress("Starting Frame-to-Video flow...");
+          reportProgress(startFromPromptIndex != null ? `Resuming Frame-to-Video from prompt ${startFromPromptIndex + 1}...` : "Starting Frame-to-Video flow...");
           await runFrameToVideo(
             {
               ...project,
@@ -707,7 +778,8 @@ chrome.runtime.onMessage.addListener(
               promptDelayMs: options.promptDelayMs,
               renderTimeoutMs: options.renderTimeoutMs,
               maxRetries: options.maxRetries
-            }
+            },
+            startFromPromptIndex
           );
         } else {
           chrome.runtime.sendMessage({

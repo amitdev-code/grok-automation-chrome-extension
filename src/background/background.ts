@@ -1,4 +1,4 @@
-import { MESSAGE_TYPES, GROK_IMAGINE_URL } from './constants';
+import { MESSAGE_TYPES, GROK_IMAGINE_URL, PAGE_LOAD_DELAY_MS } from './constants';
 import type { Project, GlobalSettings } from './types';
 import {
   getProjects,
@@ -18,6 +18,7 @@ import {
   onProjectDoneFromContent,
   handleProjectProgress,
   handleContentError,
+  ensureTabOnImagine,
 } from './queueProcessor';
 import { handleDownloadRequest } from './downloadHandler';
 
@@ -121,6 +122,39 @@ chrome.runtime.onMessage.addListener(
 chrome.runtime.onMessage.addListener(
   (message: { type: string; payload?: unknown }, sender, sendResponse) => {
     if (!sender.tab) return false;
+    if (message.type === MESSAGE_TYPES.REQUEST_NAVIGATE_TO_IMAGINE) {
+      const tabId = sender.tab.id;
+      const payload = message.payload as {
+        project: Project & { settings: Record<string, unknown> };
+        promptIndex: number;
+        options: { promptDelayMs: number; renderTimeoutMs: number; maxRetries: number };
+      };
+      if (tabId == null || !payload?.project || typeof payload.promptIndex !== 'number') {
+        sendResponse({ ok: false });
+        return false;
+      }
+      (async () => {
+        try {
+          handleProjectProgress('Navigating to https://grok.com/imagine...');
+          await ensureTabOnImagine(tabId);
+          await new Promise((r) => setTimeout(r, PAGE_LOAD_DELAY_MS));
+          await chrome.scripting.executeScript({ target: { tabId }, files: ['content.js'] });
+          chrome.tabs.sendMessage(tabId, {
+            type: MESSAGE_TYPES.RUN_PROJECT,
+            payload: {
+              project: payload.project,
+              globalSettings: payload.options,
+              startFromPromptIndex: payload.promptIndex,
+            },
+          });
+          sendResponse({ ok: true });
+        } catch (err) {
+          handleContentError(err instanceof Error ? err.message : String(err), payload.project.id);
+          sendResponse({ ok: false });
+        }
+      })();
+      return true;
+    }
     if (message.type === MESSAGE_TYPES.DOWNLOAD_REQUEST) {
       const req = message.payload as {
         url: string;

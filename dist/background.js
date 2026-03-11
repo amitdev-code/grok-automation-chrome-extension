@@ -22,10 +22,14 @@ const MESSAGE_TYPES = {
   PROJECT_DONE: "PROJECT_DONE",
   QUEUE_DONE: "QUEUE_DONE",
   QUEUE_PAUSED: "QUEUE_PAUSED",
+  TAB_STATUS: "TAB_STATUS",
+  GLOBAL_SETTINGS: "GLOBAL_SETTINGS",
   ERROR: "ERROR",
   RUN_PROJECT: "RUN_PROJECT",
   DOWNLOAD_REQUEST: "DOWNLOAD_REQUEST",
-  DOWNLOAD_SAVE_AS_TIP: "DOWNLOAD_SAVE_AS_TIP"
+  CONTENT_READY: "CONTENT_READY",
+  DOWNLOAD_SAVE_AS_TIP: "DOWNLOAD_SAVE_AS_TIP",
+  REQUEST_NAVIGATE_TO_IMAGINE: "REQUEST_NAVIGATE_TO_IMAGINE"
 };
 const GROK_IMAGINE_URL = "https://grok.com/imagine";
 const PAGE_LOAD_DELAY_MS = 5e3;
@@ -372,6 +376,35 @@ chrome.runtime.onMessage.addListener(
 chrome.runtime.onMessage.addListener(
   (message, sender, sendResponse) => {
     if (!sender.tab) return false;
+    if (message.type === MESSAGE_TYPES.REQUEST_NAVIGATE_TO_IMAGINE) {
+      const tabId = sender.tab.id;
+      const payload = message.payload;
+      if (tabId == null || !payload?.project || typeof payload.promptIndex !== "number") {
+        sendResponse({ ok: false });
+        return false;
+      }
+      (async () => {
+        try {
+          handleProjectProgress("Navigating to https://grok.com/imagine...");
+          await ensureTabOnImagine(tabId);
+          await new Promise((r) => setTimeout(r, PAGE_LOAD_DELAY_MS));
+          await chrome.scripting.executeScript({ target: { tabId }, files: ["content.js"] });
+          chrome.tabs.sendMessage(tabId, {
+            type: MESSAGE_TYPES.RUN_PROJECT,
+            payload: {
+              project: payload.project,
+              globalSettings: payload.options,
+              startFromPromptIndex: payload.promptIndex
+            }
+          });
+          sendResponse({ ok: true });
+        } catch (err) {
+          handleContentError(err instanceof Error ? err.message : String(err), payload.project.id);
+          sendResponse({ ok: false });
+        }
+      })();
+      return true;
+    }
     if (message.type === MESSAGE_TYPES.DOWNLOAD_REQUEST) {
       const req = message.payload;
       if (req?.url) {

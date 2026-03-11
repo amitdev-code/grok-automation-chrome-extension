@@ -25,7 +25,7 @@ async function ensureGrokTab(): Promise<number> {
   return tab.id;
 }
 
-function ensureTabOnImagine(tabId: number): Promise<void> {
+export function ensureTabOnImagine(tabId: number): Promise<void> {
   return new Promise((resolve, reject) => {
     chrome.tabs.get(tabId, (tab) => {
       if (chrome.runtime.lastError) {

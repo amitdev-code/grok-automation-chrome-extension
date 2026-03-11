@@ -21,6 +21,7 @@ interface RunPayload {
     renderTimeoutMs: number;
     maxRetries: number;
   };
+  startFromPromptIndex?: number;
 }
 
 const DEFAULT_OPTIONS = {
@@ -34,7 +35,7 @@ chrome.runtime.onMessage.addListener(
     if (message.type !== MESSAGE_TYPES.RUN_PROJECT || !message.payload?.project) {
       return false;
     }
-    const { project, globalSettings } = message.payload;
+    const { project, globalSettings, startFromPromptIndex } = message.payload;
     const options = {
       promptDelayMs: globalSettings?.promptDelayMs ?? DEFAULT_OPTIONS.promptDelayMs,
       renderTimeoutMs: globalSettings?.renderTimeoutMs ?? DEFAULT_OPTIONS.renderTimeoutMs,
@@ -50,10 +51,10 @@ chrome.runtime.onMessage.addListener(
         reportProgress('Page ready. Waiting 1.5s for UI to settle...');
         await new Promise((r) => setTimeout(r, 1500));
         if (project.mode === 'text-to-image') {
-          reportProgress('Starting Text-to-Image flow...');
-          await runTextToImage(project, options);
+          reportProgress(startFromPromptIndex != null ? `Resuming Text-to-Image from prompt ${startFromPromptIndex + 1}...` : 'Starting Text-to-Image flow...');
+          await runTextToImage(project, options, startFromPromptIndex);
         } else if (project.mode === 'text-to-video') {
-          reportProgress('Starting Text-to-Video flow...');
+          reportProgress(startFromPromptIndex != null ? `Resuming Text-to-Video from prompt ${startFromPromptIndex + 1}...` : 'Starting Text-to-Video flow...');
           await runTextToVideo(
             {
               ...project,
@@ -67,10 +68,11 @@ chrome.runtime.onMessage.addListener(
               promptDelayMs: options.promptDelayMs,
               renderTimeoutMs: options.renderTimeoutMs,
               maxRetries: options.maxRetries,
-            }
+            },
+            startFromPromptIndex
           );
         } else if (project.mode === 'frame-to-video') {
-          reportProgress('Starting Frame-to-Video flow...');
+          reportProgress(startFromPromptIndex != null ? `Resuming Frame-to-Video from prompt ${startFromPromptIndex + 1}...` : 'Starting Frame-to-Video flow...');
           await runFrameToVideo(
             {
               ...project,
@@ -84,7 +86,8 @@ chrome.runtime.onMessage.addListener(
               promptDelayMs: options.promptDelayMs,
               renderTimeoutMs: options.renderTimeoutMs,
               maxRetries: options.maxRetries,
-            }
+            },
+            startFromPromptIndex
           );
         } else {
           chrome.runtime.sendMessage({

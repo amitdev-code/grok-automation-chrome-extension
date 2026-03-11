@@ -1,4 +1,4 @@
-import { findByXPath, clickElement, setInputValue, waitForGeneratingThen100Percent } from '../xpath';
+import { findByXPath, clickElement, setInputValue, waitForGeneratingThen100Percent, waitForImaginePageReady } from '../xpath';
 import { findPromptInput, findGenerateButton } from '../xpath';
 import { SELECTORS, FALLBACKS } from '../selectors';
 import { MESSAGE_TYPES } from '../messages';
@@ -57,29 +57,53 @@ export async function runTextToImage(
     prompts: string[];
     settings: { aspectRatio: string };
   },
-  options: { promptDelayMs: number; renderTimeoutMs: number; maxRetries: number }
+  options: { promptDelayMs: number; renderTimeoutMs: number; maxRetries: number },
+  startFromPromptIndex = 0
 ): Promise<void> {
   const { prompts, settings, name } = project;
   const { promptDelayMs, renderTimeoutMs, maxRetries } = options;
 
-  reportProgress('Selecting Image mode...');
-  if (!clickImageMode()) {
-    reportError('Could not select Image mode');
-    return;
-  }
-  await delay(500);
-  reportProgress(`Setting aspect ratio to ${settings.aspectRatio}...`);
-  selectAspectRatio(settings.aspectRatio);
-  await delay(300);
+  const imagineBase = 'https://grok.com/imagine';
+  const isOnImaginePage = (): boolean => {
+    const href = window.location.href;
+    return href === imagineBase || href.startsWith(imagineBase + '?');
+  };
+  for (let i = startFromPromptIndex; i < prompts.length; i++) {
+    reportProgress(`[${i + 1}/${prompts.length}] Checking URL...`);
+    if (!isOnImaginePage()) {
+      reportProgress(`[${i + 1}/${prompts.length}] URL is not base Imagine. Requesting navigation to ${imagineBase}...`);
+      chrome.runtime.sendMessage({
+        type: MESSAGE_TYPES.REQUEST_NAVIGATE_TO_IMAGINE,
+        payload: { project, promptIndex: i, options: { promptDelayMs, renderTimeoutMs, maxRetries } },
+      }).catch(() => {});
+      return;
+    }
+    reportProgress(`[${i + 1}/${prompts.length}] Ensuring page ready...`);
+    try {
+      await waitForImaginePageReady(i === startFromPromptIndex ? 20000 : 10000);
+      await delay(1000);
+    } catch {
+      reportError(`Page not ready before prompt ${i + 1}`);
+      return;
+    }
 
-  reportProgress('Finding prompt input...');
-  const promptInput = findPromptInput(SELECTORS.PROMPT_INPUT);
-  if (!promptInput) {
-    reportError('Could not find prompt input');
-    return;
-  }
+    reportProgress(`[${i + 1}/${prompts.length}] Selecting Image mode...`);
+    if (!clickImageMode()) {
+      reportError(`Could not select Image mode (prompt ${i + 1})`);
+      return;
+    }
+    await delay(500);
+    reportProgress(`[${i + 1}/${prompts.length}] Setting aspect ratio to ${settings.aspectRatio}...`);
+    selectAspectRatio(settings.aspectRatio);
+    await delay(300);
 
-  for (let i = 0; i < prompts.length; i++) {
+    reportProgress(`[${i + 1}/${prompts.length}] Finding prompt input...`);
+    const promptInput = findPromptInput(SELECTORS.PROMPT_INPUT);
+    if (!promptInput) {
+      reportError(`Could not find prompt input (prompt ${i + 1})`);
+      return;
+    }
+
     reportProgress(`[${i + 1}/${prompts.length}] Entering prompt...`);
     setInputValue(promptInput, prompts[i]);
     await delay(400);
