@@ -19,11 +19,7 @@ const statusStyles: Record<Project['status'], string> = {
   error: 'bg-red-100 text-red-700',
 };
 
-const modeLabels: Record<Project['mode'], string> = {
-  'text-to-video': 'Video',
-  'frame-to-video': 'Frame to Video',
-  'text-to-image': 'Image',
-};
+const getModeLabel = () => 'Video';
 
 export default function ProjectList({
   projects,
@@ -54,7 +50,7 @@ export default function ProjectList({
             <div className="min-w-0 flex-1">
               <p className="font-medium text-gray-900 truncate font-poppins">{project.name}</p>
               <p className="text-xs text-gray-500 mt-0.5">
-                {modeLabels[project.mode]} · {project.prompts.length} prompt{project.prompts.length !== 1 ? 's' : ''}
+                {getModeLabel()} · {project.prompts.length} prompt{project.prompts.length !== 1 ? 's' : ''}
               </p>
               <p className="text-xs text-gray-400 mt-0.5 truncate">
                 {getOutputFolder(project.name)}/

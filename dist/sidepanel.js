@@ -2372,7 +2372,7 @@ function createNewProject(overrides) {
   return {
     id: generateId(),
     name: "New Project",
-    mode: "text-to-image",
+    mode: "text-to-video",
     prompts: [],
     settings: { ...DEFAULT_GENERATION_SETTINGS },
     status: "idle",
@@ -2388,11 +2388,7 @@ const statusStyles = {
   completed: "bg-emerald-100 text-emerald-700",
   error: "bg-red-100 text-red-700"
 };
-const modeLabels$1 = {
-  "text-to-video": "Video",
-  "frame-to-video": "Frame to Video",
-  "text-to-image": "Image"
-};
+const getModeLabel$1 = () => "Video";
 function ProjectList({
   projects,
   onEdit,
@@ -2416,7 +2412,7 @@ function ProjectList({
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-w-0 flex-1", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "font-medium text-gray-900 truncate font-poppins", children: project.name }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs text-gray-500 mt-0.5", children: [
-            modeLabels$1[project.mode],
+            getModeLabel$1(),
             " · ",
             project.prompts.length,
             " prompt",
@@ -2494,11 +2490,7 @@ function ProjectList({
   )) });
 }
 
-const MODES = [
-  { value: "text-to-image", label: "Image", icon: "mdi:image" },
-  { value: "text-to-video", label: "Video", icon: "mdi:video" },
-  { value: "frame-to-video", label: "Frame to Video", icon: "mdi:image-multiple" }
-];
+const FIXED_MODE = "text-to-video";
 const MODELS = [
   { value: "grok-3.1-fast", label: "Grok 3.1 Fast" },
   { value: "grok-3.1-quality", label: "Grok 3.1 Quality" },
@@ -2514,7 +2506,6 @@ const btnSelected = "bg-white text-gray-900 border border-gray-200 shadow-sm";
 function ProjectForm({ project, onSave, onCancel }) {
   const initial = project ?? createNewProject();
   const [name, setName] = reactExports.useState(initial.name);
-  const [mode, setMode] = reactExports.useState(initial.mode);
   const [promptList, setPromptList] = reactExports.useState(
     initial.prompts.length > 0 ? initial.prompts : [""]
   );
@@ -2529,7 +2520,7 @@ function ProjectForm({ project, onSave, onCancel }) {
     onSave({
       ...initial,
       name: name.trim() || "Untitled Project",
-      mode,
+      mode: FIXED_MODE,
       prompts,
       settings,
       updatedAt: Date.now()
@@ -2561,7 +2552,7 @@ function ProjectForm({ project, onSave, onCancel }) {
     reader.readAsText(file);
     e.target.value = "";
   };
-  const outputsMax = mode === "text-to-image" ? 50 : 4;
+  const outputsMax = 4;
   const outputsMin = 1;
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("form", { onSubmit: handleSubmit, className: "space-y-6", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
@@ -2590,19 +2581,10 @@ function ProjectForm({ project, onSave, onCancel }) {
         /* @__PURE__ */ jsxRuntimeExports.jsx(Icon, { icon: "mdi:format-list-bulleted-type", className: "w-3.5 h-3.5" }),
         "Mode"
       ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-wrap gap-2", children: MODES.map((m) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
-        "button",
-        {
-          type: "button",
-          onClick: () => setMode(m.value),
-          className: `${btnBase} ${mode === m.value ? btnSelected : btnUnselected}`,
-          children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Icon, { icon: m.icon, className: "w-4 h-4" }),
-            m.label
-          ]
-        },
-        m.value
-      )) })
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: `${btnBase} ${btnSelected} cursor-default w-fit`, "aria-hidden": true, children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(Icon, { icon: "mdi:video", className: "w-4 h-4" }),
+        "Video"
+      ] })
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: "flex items-center gap-1.5 text-xs font-medium text-gray-500 uppercase tracking-wide mb-2", children: [
@@ -2620,7 +2602,7 @@ function ProjectForm({ project, onSave, onCancel }) {
         r
       )) })
     ] }),
-    (mode === "text-to-video" || mode === "frame-to-video") && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-2 gap-4", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-2 gap-4", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: "flex items-center gap-1.5 text-xs font-medium text-gray-500 uppercase tracking-wide mb-2", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(Icon, { icon: "mdi:monitor", className: "w-3.5 h-3.5" }),
@@ -2802,11 +2784,7 @@ function ProjectForm({ project, onSave, onCancel }) {
   ] });
 }
 
-const modeLabels = {
-  "text-to-video": "Text to Video",
-  "frame-to-video": "Frame to Video",
-  "text-to-image": "Text to Image"
-};
+const getModeLabel = () => "Video";
 function QueueView({
   projects,
   queueOrder,
@@ -2847,7 +2825,7 @@ function QueueView({
             "."
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm text-gray-900 truncate flex-1", children: project.name }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-gray-500 shrink-0", children: modeLabels[project.mode] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-gray-500 shrink-0", children: getModeLabel() }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-0.5 shrink-0", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx(
               "button",
@@ -3289,7 +3267,7 @@ function App() {
             children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx(Icon, { icon: "mdi:image-multiple-outline", className: "w-6 h-6 text-gray-500 shrink-0 mt-0.5" }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "block font-semibold", children: "Partial Clips and Images" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "block font-semibold", children: "Partial Clips" }),
                 /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "block text-xs text-gray-500 mt-1", children: "Create projects, queue prompts, and automate generation on Grok Imagine" })
               ] })
             ]
@@ -3309,6 +3287,21 @@ function App() {
               ] })
             ]
           }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "button",
+          {
+            type: "button",
+            onClick: () => setView("create-video-from-last-frame"),
+            className: "w-full py-4 px-4 rounded-2xl border border-gray-200 bg-white text-gray-900 font-medium hover:border-gray-300 hover:bg-gray-50 transition-all text-left flex items-start gap-3",
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Icon, { icon: "mdi:movie-plus-outline", className: "w-6 h-6 text-gray-500 shrink-0 mt-0.5" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "block font-semibold", children: "Create Video From last Frame" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "block text-xs text-gray-500 mt-1", children: "Generate video continuing from the last frame" })
+              ] })
+            ]
+          }
         )
       ] })
     ] });
@@ -3317,6 +3310,25 @@ function App() {
     return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-4 max-w-md mx-auto bg-gray-50 min-h-screen flex flex-col items-center justify-center font-poppins", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx(Icon, { icon: "mdi:movie-open-outline", className: "w-10 h-10 text-gray-400 mb-2" }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-lg font-semibold text-gray-900 mb-2", children: "Extended Long Video" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-gray-600 text-center", children: "Coming soon" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(
+        "button",
+        {
+          type: "button",
+          onClick: () => setView("mode-select"),
+          className: "mt-6 inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 underline",
+          children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Icon, { icon: "mdi:arrow-left", className: "w-4 h-4" }),
+            "Back to mode selection"
+          ]
+        }
+      )
+    ] });
+  }
+  if (view === "create-video-from-last-frame") {
+    return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-4 max-w-md mx-auto bg-gray-50 min-h-screen flex flex-col items-center justify-center font-poppins", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(Icon, { icon: "mdi:movie-plus-outline", className: "w-10 h-10 text-gray-400 mb-2" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-lg font-semibold text-gray-900 mb-2", children: "Create Video From last Frame" }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-gray-600 text-center", children: "Coming soon" }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs(
         "button",

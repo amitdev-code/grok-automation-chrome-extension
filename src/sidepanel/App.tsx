@@ -9,7 +9,7 @@ import ProjectForm from './components/ProjectForm';
 import QueueView from './components/QueueView';
 import GlobalSettingsForm from './components/GlobalSettingsForm';
 
-type ViewMode = 'mode-select' | 'partial' | 'extended';
+type ViewMode = 'mode-select' | 'partial' | 'extended' | 'create-video-from-last-frame';
 
 export default function App() {
   const [view, setView] = useState<ViewMode | null>(null);
@@ -280,7 +280,7 @@ export default function App() {
           >
             <Icon icon="mdi:image-multiple-outline" className="w-6 h-6 text-gray-500 shrink-0 mt-0.5" />
             <span>
-              <span className="block font-semibold">Partial Clips and Images</span>
+              <span className="block font-semibold">Partial Clips</span>
               <span className="block text-xs text-gray-500 mt-1">
                 Create projects, queue prompts, and automate generation on Grok Imagine
               </span>
@@ -288,14 +288,14 @@ export default function App() {
           </button>
           <button
             type="button"
-            onClick={() => setView('extended')}
+            onClick={() => setView('create-video-from-last-frame')}
             className="w-full py-4 px-4 rounded-2xl border border-gray-200 bg-white text-gray-900 font-medium hover:border-gray-300 hover:bg-gray-50 transition-all text-left flex items-start gap-3"
           >
-            <Icon icon="mdi:movie-open-outline" className="w-6 h-6 text-gray-500 shrink-0 mt-0.5" />
+            <Icon icon="mdi:movie-plus-outline" className="w-6 h-6 text-gray-500 shrink-0 mt-0.5" />
             <span>
-              <span className="block font-semibold">Extended Long Video</span>
+              <span className="block font-semibold">Create Video From last Frame</span>
               <span className="block text-xs text-gray-500 mt-1">
-                Long-form video generation
+                Generate video continuing from the last frame
               </span>
             </span>
           </button>
@@ -309,6 +309,24 @@ export default function App() {
       <div className="p-4 max-w-md mx-auto bg-gray-50 min-h-screen flex flex-col items-center justify-center font-poppins">
         <Icon icon="mdi:movie-open-outline" className="w-10 h-10 text-gray-400 mb-2" />
         <h1 className="text-lg font-semibold text-gray-900 mb-2">Extended Long Video</h1>
+        <p className="text-gray-600 text-center">Coming soon</p>
+        <button
+          type="button"
+          onClick={() => setView('mode-select')}
+          className="mt-6 inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 underline"
+        >
+          <Icon icon="mdi:arrow-left" className="w-4 h-4" />
+          Back to mode selection
+        </button>
+      </div>
+    );
+  }
+
+  if (view === 'create-video-from-last-frame') {
+    return (
+      <div className="p-4 max-w-md mx-auto bg-gray-50 min-h-screen flex flex-col items-center justify-center font-poppins">
+        <Icon icon="mdi:movie-plus-outline" className="w-10 h-10 text-gray-400 mb-2" />
+        <h1 className="text-lg font-semibold text-gray-900 mb-2">Create Video From last Frame</h1>
         <p className="text-gray-600 text-center">Coming soon</p>
         <button
           type="button"

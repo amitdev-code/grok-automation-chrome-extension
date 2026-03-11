@@ -1,5 +1,5 @@
 // Local copy for background (avoids shared chunk)
-export type GenerationMode = 'text-to-video' | 'frame-to-video' | 'text-to-image';
+export type GenerationMode = 'text-to-video';
 export type ProjectStatus = 'idle' | 'running' | 'completed' | 'error';
 export type ModelOption = 'grok-3.1-fast' | 'grok-3.1-quality' | 'grok-2-fast' | 'grok-2-quality';
 export type AspectRatio = '16:9' | '9:16' | '1:1' | '2:3' | '3:2';

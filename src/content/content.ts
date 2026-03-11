@@ -1,8 +1,6 @@
 import { MESSAGE_TYPES } from './messages';
 import { waitForImaginePageReady } from './xpath';
-import { runTextToImage } from './flows/textToImage';
 import { runTextToVideo } from './flows/textToVideo';
-import { runFrameToVideo } from './flows/frameToVideo';
 
 interface RunPayload {
   project: {
@@ -50,52 +48,27 @@ chrome.runtime.onMessage.addListener(
         await waitForImaginePageReady(20000);
         reportProgress('Page ready. Waiting 1.5s for UI to settle...');
         await new Promise((r) => setTimeout(r, 1500));
-        if (project.mode === 'text-to-image') {
-          reportProgress(startFromPromptIndex != null ? `Resuming Text-to-Image from prompt ${startFromPromptIndex + 1}...` : 'Starting Text-to-Image flow...');
-          await runTextToImage(project, options, startFromPromptIndex);
-        } else if (project.mode === 'text-to-video') {
-          reportProgress(startFromPromptIndex != null ? `Resuming Text-to-Video from prompt ${startFromPromptIndex + 1}...` : 'Starting Text-to-Video flow...');
-          await runTextToVideo(
-            {
-              ...project,
-              settings: {
-                aspectRatio: project.settings.aspectRatio ?? '16:9',
-                videoQuality: project.settings.videoQuality ?? '720p',
-                videoLength: project.settings.videoLength ?? '6',
-              },
+        reportProgress(
+          startFromPromptIndex != null
+            ? `Resuming Video from prompt ${startFromPromptIndex + 1}...`
+            : 'Starting Video flow...'
+        );
+        await runTextToVideo(
+          {
+            ...project,
+            settings: {
+              aspectRatio: project.settings.aspectRatio ?? '16:9',
+              videoQuality: project.settings.videoQuality ?? '720p',
+              videoLength: project.settings.videoLength ?? '6',
             },
-            {
-              promptDelayMs: options.promptDelayMs,
-              renderTimeoutMs: options.renderTimeoutMs,
-              maxRetries: options.maxRetries,
-            },
-            startFromPromptIndex
-          );
-        } else if (project.mode === 'frame-to-video') {
-          reportProgress(startFromPromptIndex != null ? `Resuming Frame-to-Video from prompt ${startFromPromptIndex + 1}...` : 'Starting Frame-to-Video flow...');
-          await runFrameToVideo(
-            {
-              ...project,
-              settings: {
-                aspectRatio: project.settings.aspectRatio ?? '16:9',
-                videoQuality: project.settings.videoQuality ?? '720p',
-                videoLength: project.settings.videoLength ?? '6',
-              },
-            },
-            {
-              promptDelayMs: options.promptDelayMs,
-              renderTimeoutMs: options.renderTimeoutMs,
-              maxRetries: options.maxRetries,
-            },
-            startFromPromptIndex
-          );
-        } else {
-          chrome.runtime.sendMessage({
-            type: MESSAGE_TYPES.ERROR,
-            payload: { error: `Unknown mode: ${project.mode}` },
-          });
-          chrome.runtime.sendMessage({ type: MESSAGE_TYPES.PROJECT_DONE, payload: project.id });
-        }
+          },
+          {
+            promptDelayMs: options.promptDelayMs,
+            renderTimeoutMs: options.renderTimeoutMs,
+            maxRetries: options.maxRetries,
+          },
+          startFromPromptIndex
+        );
       } catch (err) {
         chrome.runtime.sendMessage({
           type: MESSAGE_TYPES.ERROR,

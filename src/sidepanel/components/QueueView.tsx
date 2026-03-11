@@ -16,11 +16,7 @@ interface QueueViewProps {
   onTerminate: () => void;
 }
 
-const modeLabels: Record<Project['mode'], string> = {
-  'text-to-video': 'Text to Video',
-  'frame-to-video': 'Frame to Video',
-  'text-to-image': 'Text to Image',
-};
+const getModeLabel = () => 'Video';
 
 export default function QueueView({
   projects,
@@ -73,7 +69,7 @@ export default function QueueView({
                 {project.name}
               </span>
               <span className="text-xs text-gray-500 shrink-0">
-                {modeLabels[project.mode]}
+                {getModeLabel()}
               </span>
               <div className="flex items-center gap-0.5 shrink-0">
                 <button

@@ -1,4 +1,4 @@
-export type GenerationMode = 'text-to-video' | 'frame-to-video' | 'text-to-image';
+export type GenerationMode = 'text-to-video';
 
 export type ProjectStatus = 'idle' | 'running' | 'completed' | 'error';
 

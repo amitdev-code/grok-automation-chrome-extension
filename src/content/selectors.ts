@@ -2,9 +2,7 @@
 // Fallbacks: try by button text or role where possible
 
 export const SELECTORS = {
-  // Mode buttons (Image = first, Video = second in the form area)
-  IMAGE_MODE:
-    '/html/body/div[2]/div/div[2]/div/div/div/div[2]/div/form/div/div/div/div[3]/div[1]/div/button[1]',
+  // Mode: Video (we only use Video)
   VIDEO_MODE:
     '/html/body/div[2]/div/div[2]/div/div/div/div[2]/div/form/div/div/div/div[3]/div[1]/div/button[2]',
   // Aspect ratio dropdown (Radix - IDs can change)
@@ -40,7 +38,6 @@ export const SELECTORS = {
 
 // Fallbacks by text content or attributes (for resilience)
 export const FALLBACKS = {
-  imageMode: () => findByText('button', 'Image'),
   videoMode: () => findByText('button', 'Video'),
   aspectRatioOption: (ratio: string) => findByText('div', ratio),
   /** Download button by aria-label (stable when DOM structure changes). */

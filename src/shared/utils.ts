@@ -30,7 +30,7 @@ export function createNewProject(overrides?: Partial<Project>): Project {
   return {
     id: generateId(),
     name: 'New Project',
-    mode: 'text-to-image',
+    mode: 'text-to-video',
     prompts: [],
     settings: { ...DEFAULT_GENERATION_SETTINGS },
     status: 'idle',

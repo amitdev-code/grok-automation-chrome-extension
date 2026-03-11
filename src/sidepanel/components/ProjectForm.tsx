@@ -9,11 +9,8 @@ interface ProjectFormProps {
   onCancel: () => void;
 }
 
-const MODES: { value: GenerationMode; label: string; icon: string }[] = [
-  { value: 'text-to-image', label: 'Image', icon: 'mdi:image' },
-  { value: 'text-to-video', label: 'Video', icon: 'mdi:video' },
-  { value: 'frame-to-video', label: 'Frame to Video', icon: 'mdi:image-multiple' },
-];
+/** Single fixed mode for all projects. */
+const FIXED_MODE: GenerationMode = 'text-to-video';
 
 const MODELS: { value: ModelOption; label: string }[] = [
   { value: 'grok-3.1-fast', label: 'Grok 3.1 Fast' },
@@ -34,7 +31,6 @@ const btnSelected = 'bg-white text-gray-900 border border-gray-200 shadow-sm';
 export default function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
   const initial = project ?? createNewProject();
   const [name, setName] = useState(initial.name);
-  const [mode, setMode] = useState<GenerationMode>(initial.mode);
   const [promptList, setPromptList] = useState<string[]>(
     initial.prompts.length > 0 ? initial.prompts : ['']
   );
@@ -50,7 +46,7 @@ export default function ProjectForm({ project, onSave, onCancel }: ProjectFormPr
     onSave({
       ...initial,
       name: name.trim() || 'Untitled Project',
-      mode,
+      mode: FIXED_MODE,
       prompts,
       settings,
       updatedAt: Date.now(),
@@ -87,7 +83,7 @@ export default function ProjectForm({ project, onSave, onCancel }: ProjectFormPr
     e.target.value = '';
   };
 
-  const outputsMax = mode === 'text-to-image' ? 50 : 4;
+  const outputsMax = 4;
   const outputsMin = 1;
 
   return (
@@ -110,24 +106,15 @@ export default function ProjectForm({ project, onSave, onCancel }: ProjectFormPr
         </p>
       </div>
 
-      {/* Mode: Image | Video | Frame to Video */}
+      {/* Mode: Video (fixed, not changeable) */}
       <div>
         <label className="flex items-center gap-1.5 text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
           <Icon icon="mdi:format-list-bulleted-type" className="w-3.5 h-3.5" />
           Mode
         </label>
-        <div className="flex flex-wrap gap-2">
-          {MODES.map((m) => (
-            <button
-              key={m.value}
-              type="button"
-              onClick={() => setMode(m.value)}
-              className={`${btnBase} ${mode === m.value ? btnSelected : btnUnselected}`}
-            >
-              <Icon icon={m.icon} className="w-4 h-4" />
-              {m.label}
-            </button>
-          ))}
+        <div className={`${btnBase} ${btnSelected} cursor-default w-fit`} aria-hidden>
+          <Icon icon="mdi:video" className="w-4 h-4" />
+          Video
         </div>
       </div>
 
@@ -152,8 +139,7 @@ export default function ProjectForm({ project, onSave, onCancel }: ProjectFormPr
       </div>
 
       {/* Video: Quality & Duration */}
-      {(mode === 'text-to-video' || mode === 'frame-to-video') && (
-        <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="flex items-center gap-1.5 text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
               <Icon icon="mdi:monitor" className="w-3.5 h-3.5" />
@@ -191,7 +177,6 @@ export default function ProjectForm({ project, onSave, onCancel }: ProjectFormPr
             </div>
           </div>
         </div>
-      )}
 
       {/* Prompts list */}
       <div>
