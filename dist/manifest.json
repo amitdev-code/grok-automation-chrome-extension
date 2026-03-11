@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "Grok Automation",
+  "version": "1.0.0",
+  "description": "Automate content generation on Grok Imagine",
+  "permissions": ["sidePanel", "storage", "scripting", "downloads", "tabs", "activeTab"],
+  "host_permissions": ["https://grok.com/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "action": {
+    "default_title": "Open Grok Automation"
+  }
+}
